@@ -12,3 +12,8 @@ window.addEventListener('DOMContentLoaded', () => {
         ipcRenderer.send('close-window');
     });
 });
+
+// Expose a function that will send the 'bring-to-front' event to the main process
+contextBridge.exposeInMainWorld('api', {
+    bringToFront: () => ipcRenderer.send('bring-to-front')
+});

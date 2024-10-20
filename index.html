@@ -56,6 +56,25 @@
         .announcement-message {
             text-align: center;
         }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+            background-color: pink;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 
@@ -64,7 +83,7 @@
     <div class="window">
         <!-- Custom Title Bar -->
         <div class="title-bar">
-            <div class="title">Announcement</div>
+            <div class="title">Jacques announcement applicaton</div>
             <div class="title-bar-buttons">
                 <button id="min-btn" class="btn">—</button>
                 <button id="close-btn" class="btn">×</button>
@@ -73,9 +92,9 @@
 
         <!-- Announcement Content -->
         <div class="announcement">
-            <div class="announcement-message">
+            <div id="AlertPulse" class="announcement-message">
                 <h1>Important Announcement</h1>
-                <p id="Message">We are pleased to inform you of a major update coming soon!</p>
+                <h3 id="EmergencyBroadCast">We are pleased to inform you of a major update coming soon!</h3>
             </div>
         </div>
     </div>
@@ -84,6 +103,30 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+    <script>
+        var protocol = 'http://';
+        var host = 'hbpatel.jacqueshq.com.au';
+        var port = protocol === 'https://' ? '443' : '80';
+        var socketio = io.connect(protocol + host + ':' + port, {
+            debug: true
+        });
+
+        socketio.on('connect', function () {
+            socketio.on('emergency_broadcast', function (json_data) {
+                if (json_data.message == '') {
+                    return;
+                }
+                $('#EmergencyBroadCast').text(json_data.message);
+                if (json_data.action == 'start') {
+                    $('#AlertPulse').addClass('alert alert-danger pulse');
+                    window.api.bringToFront();
+                } else {
+                    $('#AlertPulse').removeClass('alert alert-danger pulse');
+                }
+            });
+        });
+    </script>
 
 </body>
 
