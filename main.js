@@ -6,13 +6,13 @@ const {
     Menu,
     session,
 } = require("electron");
+const fs = require('fs');
 const path = require("path");
 
 let mainWindow;
 let tray = null;
 
 function createWindow() {
-    console.log(path.join(__dirname, "preload.js"));
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
@@ -50,6 +50,7 @@ function createWindow() {
     if (!tray) {
         createTray();
     }
+
 }
 
 // Function to create the system tray
@@ -79,7 +80,11 @@ function createTray() {
     });
 }
 
-app.on("ready", createWindow);
+app.on("ready", function () {
+    createWindow();
+    // Call the function to ensure the file exists
+    ensureSettingsFileExists();
+});
 
 app.on("window-all-closed", function () {
     if (process.platform !== "darwin") {
@@ -104,13 +109,49 @@ ipcMain.on("close-window", () => {
 });
 
 ipcMain.on("bring-to-front", () => {
-    if (mainWindow.isMinimized() || !mainWindow.isVisible()) {
-        mainWindow.restore();
-        mainWindow.show();
-    }
+    mainWindow.restore();
+    mainWindow.show();
     mainWindow.focus();
     mainWindow.setAlwaysOnTop(true);
-    setTimeout(() => {
-        mainWindow.setAlwaysOnTop(false);
-    }, 3000);
+});
+
+// Handle save-settings event and send back a response
+const settingsPath = path.join(path.join(__dirname, "settings.json"));
+function ensureSettingsFileExists() {
+    if (!fs.existsSync(settingsPath)) {
+        // If the file doesn't exist, create it with default content
+        const defaultSettings = {
+            protocol: "http",
+            host: "localhost",
+            port: "80",
+        };
+
+        fs.writeFileSync(
+            settingsPath,
+            JSON.stringify(defaultSettings, null, 2),
+            "utf-8"
+        );
+        console.log("settings.json file created with default settings.");
+    }
+}
+
+ipcMain.handle('save-settings', async (event, settings) => {
+    try {
+        // Save the settings to settings.json
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+
+        // Send a success response back
+        return { status: 'success', message: 'Settings saved successfully' };
+    } catch (error) {
+        // If there is an error, send an error response back
+        return { status: 'error', message: 'Failed to save settings', error: error.message };
+    }
+});
+
+ipcMain.handle('get-settings', () => {
+    let settings = null;
+    if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath));
+    }
+    return settings;
 });
