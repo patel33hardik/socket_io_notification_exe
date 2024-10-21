@@ -85,11 +85,15 @@
         <div class="title-bar">
             <div class="title">Jacques announcement applicaton</div>
             <div class="title-bar-buttons">
+                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#socketSetupModal">
+                    Setup</button>
                 <button id="min-btn" class="btn">—</button>
                 <button id="close-btn" class="btn">×</button>
             </div>
         </div>
-
+        <div id="socketStatus" class="alert alert-danger d-none" role="alert">
+            Socket.io status: N/A
+        </div>
         <!-- Announcement Content -->
         <div class="announcement">
             <div id="AlertPulse" class="announcement-message">
@@ -99,33 +103,119 @@
         </div>
     </div>
 
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="socketSetupModal" tabindex="-1" aria-labelledby="socketSetupModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socketSetupModalLabel">Socket Server Setup</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="socketSetupForm">
+                        <div class="mb-3">
+                            <label for="protocolInput" class="form-label">Protocol</label>
+                            <select id="protocolInput" class="form-select">
+                                <option value="http">http</option>
+                                <option value="https">https</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="hostInput" class="form-label">Host</label>
+                            <input type="text" class="form-control" id="hostInput"
+                                placeholder="Enter host, e.g. hbpatel.jacqueshq.com.au" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="portInput" class="form-label">Port</label>
+                            <input type="text" class="form-control" id="portInput" placeholder="Enter port number"
+                                required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSettings">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS and Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
     <script>
-        var protocol = 'http://';
-        var host = 'hbpatel.jacqueshq.com.au';
-        var port = protocol === 'https://' ? '443' : '80';
-        var socketio = io.connect(protocol + host + ':' + port, {
-            debug: true
+
+        let socketio;
+        $(document).ready(async function () {
+            requestSettings();
         });
 
-        socketio.on('connect', function () {
+        $('#saveSettings').on('click', async function () {
+            const protocol = $('#protocolInput').val();
+            const host = $('#hostInput').val();
+            const port = $('#portInput').val();
+
+            let settings = { protocol, host, port };
+            const response = await window.api.saveSettings(settings);
+
+            if (response.status === 'success') {
+                console.log('Settings saved successfully');
+                updateSocketInfo(settings);
+            } else {
+                console.error('Failed to save settings:', response.message);
+            }
+            $('#socketSetupModal').modal('hide');
+        });
+
+        async function requestSettings() {
+            const settings = await window.api.requestSettings();
+            if (settings) {
+                document.getElementById('protocolInput').value = settings.protocol;
+                document.getElementById('hostInput').value = settings.host;
+                document.getElementById('portInput').value = settings.port;
+                updateSocketInfo(settings);
+            }
+        }
+
+        function updateSocketInfo(settings) {
+            const protocol = settings.protocol;
+            const host = settings.host;
+            const port = settings.port;
+
+            if (socketio) {
+                socketio.disconnect();
+            }
+
+            socketio = io.connect(`${protocol}://${host}:${port}`, { debug: true });
+            $('#socketStatus').removeClass('d-none').text('Socket.io: Connecting...');
+            socketio.on('disconnect', function () {
+                $('#socketStatus').text('Socket.io: Disconnected').removeClass('alert-success').addClass('alert-danger');
+            });
+
+            socketio.on('connect_error', function () {
+                $('#socketStatus').text('Socket.io: Not Connected').removeClass('alert-success').addClass('alert-danger');
+            });
+
+            socketio.on('connect', function () {
+                $('#socketStatus').text('Socket.io: Connected').removeClass('alert-danger').addClass('alert-success');
+            });
+
             socketio.on('emergency_broadcast', function (json_data) {
-                if (json_data.message == '') {
-                    return;
-                }
+                if (json_data.message == '') return;
+
                 $('#EmergencyBroadCast').text(json_data.message);
+
                 if (json_data.action == 'start') {
                     $('#AlertPulse').addClass('alert alert-danger pulse');
-                    window.api.bringToFront();
+                    window.api.bringToFront(); // Bring the app to the front if 'start' action received
                 } else {
                     $('#AlertPulse').removeClass('alert alert-danger pulse');
                 }
             });
-        });
+        }
     </script>
 
 </body>

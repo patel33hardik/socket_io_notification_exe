@@ -15,5 +15,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Expose a function that will send the 'bring-to-front' event to the main process
 contextBridge.exposeInMainWorld('api', {
-    bringToFront: () => ipcRenderer.send('bring-to-front')
+    bringToFront: () => ipcRenderer.send('bring-to-front'),
+    requestSettings: () => ipcRenderer.invoke('get-settings'),
+    saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
 });
