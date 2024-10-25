@@ -1,16 +1,49 @@
 {
-  "name": "announcement_exe",
+  "name": "mns-alerting",
   "version": "1.0.0",
   "main": "main.js",
+  "build": {
+    "appId": "com.jacques.mns-alerting",
+    "win": {
+      "target": "nsis",
+      "icon": "tray_icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "tray_icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "tray_icon.png"
+    },
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "tray_icon.png"
+    ]
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "",
+  "description": "mns-alerting",
   "dependencies": {
-    "electron": "^33.0.1"
+  },
+  "devDependencies": {
+    "electron": "^33.0.1",
+    "electron-builder": "^25.1.8"
   }
 }
